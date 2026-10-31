@@ -147,7 +147,8 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
       const liste = lies(arg('--objekte'));
       const gi = args.indexOf('--gebiete');
       const nur = gi >= 0 ? new Set(lies(args[gi + 1]).laender.flatMap(l => l.gebiete.map(g => g.id))) : null;
-      const weg = aufraeumen(liste?.Contents ?? liste ?? [], lies(arg('--stand')), arg('--praefix'), arg('--variante'), new Date(), 48, nur);
+      // Ohne Objekte antwortet aws mit {} (kein Contents) — dann gibt es nichts aufzuräumen.
+      const weg = aufraeumen(Array.isArray(liste) ? liste : (liste?.Contents ?? []), lies(arg('--stand')), arg('--praefix'), arg('--variante'), new Date(), 48, nur);
       writeFileSync(arg('--aus'), weg.map(k => `${k}\n`).join(''));
       process.stdout.write(`${weg.length}\n`);
     } else if (befehl === 'meldung') {
