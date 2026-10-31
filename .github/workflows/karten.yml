@@ -185,11 +185,15 @@ jobs:
         run: |
           set -euo pipefail
           # Planetiler braucht für einen 2-GB-Auszug rund 10 GB Zwischenspeicher.
-          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/.ghcup \
-            /usr/share/swift /usr/local/share/boost /opt/hostedtoolcache/CodeQL || true
-          sudo docker image prune --all --force >/dev/null 2>&1 || true
-          # Gebaut wird auf der Platte mit dem MEISTEN freien Platz.
+          # Aufräumen kostet ~3 min je Job — nur, wenn weniger als 40 GB frei
+          # sind (Probelauf 31.10.2026: der öffentliche Runner hatte über 100 GB).
           frei_kb() { df --output=avail -k "$1" 2>/dev/null | tail -1 | tr -d ' ' || echo 0; }
+          if [ "$(frei_kb /)" -lt $((40 * 1024 * 1024)) ]; then
+            sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/.ghcup \
+              /usr/share/swift /usr/local/share/boost /opt/hostedtoolcache/CodeQL || true
+            sudo docker image prune --all --force >/dev/null 2>&1 || true
+          fi
+          # Gebaut wird auf der Platte mit dem MEISTEN freien Platz.
           M=""
           if sudo mkdir -p /mnt/karten 2>/dev/null && sudo chown "$(id -u):$(id -g)" /mnt/karten; then M=/mnt/karten; fi
           R="$RUNNER_TEMP/karten"; mkdir -p "$R"

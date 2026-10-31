@@ -4,13 +4,33 @@
   "varianten": {
     "voll": {
       "maxzoom": 14,
-      "weglassen": ["poi", "housenumber", "mountain_peak"],
+      "weglassen": [
+        "poi",
+        "housenumber",
+        "mountain_peak"
+      ],
       "zusatz": []
     },
     "leicht": {
       "maxzoom": 13,
-      "weglassen": ["poi", "housenumber", "mountain_peak", "building", "landcover", "landuse", "park", "aeroway", "aerodrome_label"],
-      "zusatz": ["--languages=de,en", "--exclude_ids=true", "--max_point_buffer=4", "--simplify_tolerance=0.2", "--min_feature_size=2"]
+      "weglassen": [
+        "poi",
+        "housenumber",
+        "mountain_peak",
+        "building",
+        "landcover",
+        "landuse",
+        "park",
+        "aeroway",
+        "aerodrome_label"
+      ],
+      "zusatz": [
+        "--languages=de,en",
+        "--exclude_ids=true",
+        "--max_point_buffer=4",
+        "--simplify_tolerance=0.2",
+        "--min_feature_size=2"
+      ]
     }
   },
   "ablage": {
@@ -21,14 +41,32 @@
   "grund": {
     "glyphs": "https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf",
     "sprite": "https://tiles.openfreemap.org/sprites/ofm_f384/ofm",
-    "schriften": ["Noto Sans Bold", "Noto Sans Italic", "Noto Sans Regular"],
-    "bereiche": ["0-255", "256-511", "512-767", "768-1023", "1024-1279", "1280-1535", "7680-7935", "8192-8447", "8448-8703", "65280-65535"],
+    "schriften": [
+      "Noto Sans Bold",
+      "Noto Sans Italic",
+      "Noto Sans Regular"
+    ],
+    "bereiche": [
+      "0-255",
+      "256-511",
+      "512-767",
+      "768-1023",
+      "1024-1279",
+      "1280-1535",
+      "7680-7935",
+      "8192-8447",
+      "8448-8703",
+      "65280-65535"
+    ],
     "_bereiche": "Latein, Griechisch, Kyrillisch und Satzzeichen — reicht für alle Länder in gebiete.json."
   },
   "zeit": {
-    "_": "Schätzung aus den Läufen des privaten FREQ-Repos (2 Kerne: Österreich, 0,78 GB, beide Varianten ~19 min Job). Nach dem ersten Monatslauf mit den echten Minuten aus der Zusammenfassung ersetzen.",
-    "minuten_je_gb": { "voll": 11, "leicht": 4 },
-    "minuten_je_lauf": 1.5,
-    "minuten_je_job": 4
+    "_": "Schätzung. Gemessen 31.10.2026 auf dem öffentlichen 4-Kern-Runner (16 GB): Luxemburg (46 MB) voll 50 s, leicht 33 s, davon ~25 s fester Teil (Wasserflächen, Natural Earth lesen); Job 4:40 min, davon 2:45 Aufräumen (seitdem nur bei < 40 GB frei). Je GB hochgerechnet aus Österreich im privaten Repo (2 Kerne, ~16 min für 0,78 GB beide Varianten) mit halber Zeit für 4 Kerne. Nach dem ersten Monatslauf mit den echten Minuten aus der Zusammenfassung ersetzen.",
+    "minuten_je_gb": {
+      "voll": 8,
+      "leicht": 3
+    },
+    "minuten_je_lauf": 1,
+    "minuten_je_job": 2
   }
 }
