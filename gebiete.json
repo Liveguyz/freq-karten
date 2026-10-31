@@ -1,0 +1,714 @@
+{
+  "_": "Die Gebiete, die freq-karten baut: EU, EWR und Vereinigtes Königreich (ohne Schweiz und Liechtenstein). Ein Land = ein Job im Workflow; große Länder (Deutschland, Frankreich) bestehen aus den Teilgebieten von Geofabrik. id = Dateiname auf dem Server (karten/v1/<id>/…) und Kennung in der FREQ-App — nie umbenennen. geofabrik = Pfad des Auszugs (https://download.geofabrik.de/<pfad>-latest.osm.pbf). mb = Größe des Auszugs beim Erzeugen (nur für die Planung). Übernommen aus dem Welt-Katalog der FREQ-App vom 2026-10-27.",
+  "_iso": "IC = Kanarische Inseln (Spanien, eigener Auszug bei Geofabrik). Azoren stehen als eigenes Gebiet unter PT. Nicht dabei: Färöer, Guernsey/Jersey, Isle of Man (nicht EU/EWR/UK im engeren Sinn), Schweiz, Liechtenstein.",
+  "stand": "2026-10-27",
+  "laender": [
+    {
+      "id": "austria",
+      "iso": "AT",
+      "de": "Österreich",
+      "en": "Austria",
+      "gebiete": [
+        {
+          "id": "austria",
+          "geofabrik": "europe/austria",
+          "mb": 776
+        }
+      ]
+    },
+    {
+      "id": "azores",
+      "iso": "PT",
+      "de": "Azoren",
+      "en": "Azores",
+      "gebiete": [
+        {
+          "id": "azores",
+          "geofabrik": "europe/azores",
+          "mb": 17
+        }
+      ]
+    },
+    {
+      "id": "belgium",
+      "iso": "BE",
+      "de": "Belgien",
+      "en": "Belgium",
+      "gebiete": [
+        {
+          "id": "belgium",
+          "geofabrik": "europe/belgium",
+          "mb": 665
+        }
+      ]
+    },
+    {
+      "id": "bulgaria",
+      "iso": "BG",
+      "de": "Bulgarien",
+      "en": "Bulgaria",
+      "gebiete": [
+        {
+          "id": "bulgaria",
+          "geofabrik": "europe/bulgaria",
+          "mb": 168
+        }
+      ]
+    },
+    {
+      "id": "canary-islands",
+      "iso": "IC",
+      "de": "Kanarische Inseln",
+      "en": "Canary Islands",
+      "gebiete": [
+        {
+          "id": "canary-islands",
+          "geofabrik": "africa/canary-islands",
+          "mb": 57
+        }
+      ]
+    },
+    {
+      "id": "croatia",
+      "iso": "HR",
+      "de": "Kroatien",
+      "en": "Croatia",
+      "gebiete": [
+        {
+          "id": "croatia",
+          "geofabrik": "europe/croatia",
+          "mb": 192
+        }
+      ]
+    },
+    {
+      "id": "cyprus",
+      "iso": "CY",
+      "de": "Zypern",
+      "en": "Cyprus",
+      "gebiete": [
+        {
+          "id": "cyprus",
+          "geofabrik": "europe/cyprus",
+          "mb": 36
+        }
+      ]
+    },
+    {
+      "id": "czech-republic",
+      "iso": "CZ",
+      "de": "Tschechien",
+      "en": "Czechia",
+      "gebiete": [
+        {
+          "id": "czech-republic",
+          "geofabrik": "europe/czech-republic",
+          "mb": 907
+        }
+      ]
+    },
+    {
+      "id": "denmark",
+      "iso": "DK",
+      "de": "Dänemark",
+      "en": "Denmark",
+      "gebiete": [
+        {
+          "id": "denmark",
+          "geofabrik": "europe/denmark",
+          "mb": 474
+        }
+      ]
+    },
+    {
+      "id": "estonia",
+      "iso": "EE",
+      "de": "Estland",
+      "en": "Estonia",
+      "gebiete": [
+        {
+          "id": "estonia",
+          "geofabrik": "europe/estonia",
+          "mb": 118
+        }
+      ]
+    },
+    {
+      "id": "finland",
+      "iso": "FI",
+      "de": "Finnland",
+      "en": "Finland",
+      "gebiete": [
+        {
+          "id": "finland",
+          "geofabrik": "europe/finland",
+          "mb": 738
+        }
+      ]
+    },
+    {
+      "id": "france",
+      "iso": "FR",
+      "de": "Frankreich",
+      "en": "France",
+      "gebiete": [
+        {
+          "id": "alsace",
+          "de": "Alsace",
+          "en": "Alsace",
+          "geofabrik": "europe/france/alsace",
+          "mb": 125
+        },
+        {
+          "id": "aquitaine",
+          "de": "Aquitaine",
+          "en": "Aquitaine",
+          "geofabrik": "europe/france/aquitaine",
+          "mb": 283
+        },
+        {
+          "id": "auvergne",
+          "de": "Auvergne",
+          "en": "Auvergne",
+          "geofabrik": "europe/france/auvergne",
+          "mb": 149
+        },
+        {
+          "id": "basse-normandie",
+          "de": "Basse-Normandie",
+          "en": "Basse-Normandie",
+          "geofabrik": "europe/france/basse-normandie",
+          "mb": 138
+        },
+        {
+          "id": "bourgogne",
+          "de": "Bourgogne",
+          "en": "Bourgogne",
+          "geofabrik": "europe/france/bourgogne",
+          "mb": 191
+        },
+        {
+          "id": "bretagne",
+          "de": "Bretagne",
+          "en": "Bretagne",
+          "geofabrik": "europe/france/bretagne",
+          "mb": 315
+        },
+        {
+          "id": "centre",
+          "de": "Centre",
+          "en": "Centre",
+          "geofabrik": "europe/france/centre",
+          "mb": 233
+        },
+        {
+          "id": "champagne-ardenne",
+          "de": "Champagne Ardenne",
+          "en": "Champagne Ardenne",
+          "geofabrik": "europe/france/champagne-ardenne",
+          "mb": 101
+        },
+        {
+          "id": "corse",
+          "de": "Corse",
+          "en": "Corse",
+          "geofabrik": "europe/france/corse",
+          "mb": 33
+        },
+        {
+          "id": "franche-comte",
+          "de": "Franche Comte",
+          "en": "Franche Comte",
+          "geofabrik": "europe/france/franche-comte",
+          "mb": 119
+        },
+        {
+          "id": "guadeloupe",
+          "de": "Guadeloupe",
+          "en": "Guadeloupe",
+          "geofabrik": "europe/france/guadeloupe",
+          "mb": 24
+        },
+        {
+          "id": "guyane",
+          "de": "Guyane",
+          "en": "Guyane",
+          "geofabrik": "europe/france/guyane",
+          "mb": 14
+        },
+        {
+          "id": "haute-normandie",
+          "de": "Haute-Normandie",
+          "en": "Haute-Normandie",
+          "geofabrik": "europe/france/haute-normandie",
+          "mb": 102
+        },
+        {
+          "id": "ile-de-france",
+          "de": "Ile-de-France",
+          "en": "Ile-de-France",
+          "geofabrik": "europe/france/ile-de-france",
+          "mb": 324
+        },
+        {
+          "id": "languedoc-roussillon",
+          "de": "Languedoc-Roussillon",
+          "en": "Languedoc-Roussillon",
+          "geofabrik": "europe/france/languedoc-roussillon",
+          "mb": 258
+        },
+        {
+          "id": "limousin",
+          "de": "Limousin",
+          "en": "Limousin",
+          "geofabrik": "europe/france/limousin",
+          "mb": 94
+        },
+        {
+          "id": "lorraine",
+          "de": "Lorraine",
+          "en": "Lorraine",
+          "geofabrik": "europe/france/lorraine",
+          "mb": 163
+        },
+        {
+          "id": "martinique",
+          "de": "Martinique",
+          "en": "Martinique",
+          "geofabrik": "europe/france/martinique",
+          "mb": 19
+        },
+        {
+          "id": "mayotte",
+          "de": "Mayotte",
+          "en": "Mayotte",
+          "geofabrik": "europe/france/mayotte",
+          "mb": 10
+        },
+        {
+          "id": "midi-pyrenees",
+          "de": "Midi-Pyrenees",
+          "en": "Midi-Pyrenees",
+          "geofabrik": "europe/france/midi-pyrenees",
+          "mb": 347
+        },
+        {
+          "id": "nord-pas-de-calais",
+          "de": "Nord-Pas-de-Calais",
+          "en": "Nord-Pas-de-Calais",
+          "geofabrik": "europe/france/nord-pas-de-calais",
+          "mb": 229
+        },
+        {
+          "id": "pays-de-la-loire",
+          "de": "Pays de la Loire",
+          "en": "Pays de la Loire",
+          "geofabrik": "europe/france/pays-de-la-loire",
+          "mb": 356
+        },
+        {
+          "id": "picardie",
+          "de": "Picardie",
+          "en": "Picardie",
+          "geofabrik": "europe/france/picardie",
+          "mb": 127
+        },
+        {
+          "id": "poitou-charentes",
+          "de": "Poitou-Charentes",
+          "en": "Poitou-Charentes",
+          "geofabrik": "europe/france/poitou-charentes",
+          "mb": 221
+        },
+        {
+          "id": "provence-alpes-cote-d-azur",
+          "de": "Provence Alpes-Cote-d'Azur",
+          "en": "Provence Alpes-Cote-d'Azur",
+          "geofabrik": "europe/france/provence-alpes-cote-d-azur",
+          "mb": 373
+        },
+        {
+          "id": "reunion",
+          "de": "Reunion",
+          "en": "Reunion",
+          "geofabrik": "europe/france/reunion",
+          "mb": 33
+        },
+        {
+          "id": "rhone-alpes",
+          "de": "Rhone-Alpes",
+          "en": "Rhone-Alpes",
+          "geofabrik": "europe/france/rhone-alpes",
+          "mb": 507
+        }
+      ]
+    },
+    {
+      "id": "germany",
+      "iso": "DE",
+      "de": "Deutschland",
+      "en": "Germany",
+      "gebiete": [
+        {
+          "id": "baden-wuerttemberg",
+          "de": "Baden-Württemberg",
+          "en": "Baden-Württemberg",
+          "geofabrik": "europe/germany/baden-wuerttemberg",
+          "mb": 621
+        },
+        {
+          "id": "bayern",
+          "de": "Bayern",
+          "en": "Bayern",
+          "geofabrik": "europe/germany/bayern",
+          "mb": 816
+        },
+        {
+          "id": "berlin",
+          "de": "Berlin",
+          "en": "Berlin",
+          "geofabrik": "europe/germany/berlin",
+          "mb": 95
+        },
+        {
+          "id": "brandenburg",
+          "de": "Brandenburg (mit Berlin)",
+          "en": "Brandenburg (mit Berlin)",
+          "geofabrik": "europe/germany/brandenburg",
+          "mb": 283
+        },
+        {
+          "id": "bremen",
+          "de": "Bremen",
+          "en": "Bremen",
+          "geofabrik": "europe/germany/bremen",
+          "mb": 20
+        },
+        {
+          "id": "hamburg",
+          "de": "Hamburg",
+          "en": "Hamburg",
+          "geofabrik": "europe/germany/hamburg",
+          "mb": 52
+        },
+        {
+          "id": "hessen",
+          "de": "Hessen",
+          "en": "Hessen",
+          "geofabrik": "europe/germany/hessen",
+          "mb": 331
+        },
+        {
+          "id": "mecklenburg-vorpommern",
+          "de": "Mecklenburg-Vorpommern",
+          "en": "Mecklenburg-Vorpommern",
+          "geofabrik": "europe/germany/mecklenburg-vorpommern",
+          "mb": 123
+        },
+        {
+          "id": "niedersachsen",
+          "de": "Niedersachsen (mit Bremen)",
+          "en": "Niedersachsen (mit Bremen)",
+          "geofabrik": "europe/germany/niedersachsen",
+          "mb": 485
+        },
+        {
+          "id": "nordrhein-westfalen",
+          "de": "Nordrhein-Westfalen",
+          "en": "Nordrhein-Westfalen",
+          "geofabrik": "europe/germany/nordrhein-westfalen",
+          "mb": 874
+        },
+        {
+          "id": "rheinland-pfalz",
+          "de": "Rheinland-Pfalz",
+          "en": "Rheinland-Pfalz",
+          "geofabrik": "europe/germany/rheinland-pfalz",
+          "mb": 261
+        },
+        {
+          "id": "saarland",
+          "de": "Saarland",
+          "en": "Saarland",
+          "geofabrik": "europe/germany/saarland",
+          "mb": 52
+        },
+        {
+          "id": "sachsen",
+          "de": "Sachsen",
+          "en": "Sachsen",
+          "geofabrik": "europe/germany/sachsen",
+          "mb": 257
+        },
+        {
+          "id": "sachsen-anhalt",
+          "de": "Sachsen-Anhalt",
+          "en": "Sachsen-Anhalt",
+          "geofabrik": "europe/germany/sachsen-anhalt",
+          "mb": 168
+        },
+        {
+          "id": "schleswig-holstein",
+          "de": "Schleswig-Holstein",
+          "en": "Schleswig-Holstein",
+          "geofabrik": "europe/germany/schleswig-holstein",
+          "mb": 152
+        },
+        {
+          "id": "thueringen",
+          "de": "Thüringen",
+          "en": "Thüringen",
+          "geofabrik": "europe/germany/thueringen",
+          "mb": 153
+        }
+      ]
+    },
+    {
+      "id": "greece",
+      "iso": "GR",
+      "de": "Griechenland",
+      "en": "Greece",
+      "gebiete": [
+        {
+          "id": "greece",
+          "geofabrik": "europe/greece",
+          "mb": 327
+        }
+      ]
+    },
+    {
+      "id": "hungary",
+      "iso": "HU",
+      "de": "Ungarn",
+      "en": "Hungary",
+      "gebiete": [
+        {
+          "id": "hungary",
+          "geofabrik": "europe/hungary",
+          "mb": 313
+        }
+      ]
+    },
+    {
+      "id": "iceland",
+      "iso": "IS",
+      "de": "Island",
+      "en": "Iceland",
+      "gebiete": [
+        {
+          "id": "iceland",
+          "geofabrik": "europe/iceland",
+          "mb": 62
+        }
+      ]
+    },
+    {
+      "id": "ireland-and-northern-ireland",
+      "iso": "IE",
+      "de": "Irland und Nordirland",
+      "en": "Ireland and Northern Ireland",
+      "gebiete": [
+        {
+          "id": "ireland-and-northern-ireland",
+          "geofabrik": "europe/ireland-and-northern-ireland",
+          "mb": 397
+        }
+      ]
+    },
+    {
+      "id": "italy",
+      "iso": "IT",
+      "de": "Italien",
+      "en": "Italy",
+      "gebiete": [
+        {
+          "id": "italy",
+          "geofabrik": "europe/italy",
+          "mb": 2143
+        }
+      ]
+    },
+    {
+      "id": "latvia",
+      "iso": "LV",
+      "de": "Lettland",
+      "en": "Latvia",
+      "gebiete": [
+        {
+          "id": "latvia",
+          "geofabrik": "europe/latvia",
+          "mb": 135
+        }
+      ]
+    },
+    {
+      "id": "lithuania",
+      "iso": "LT",
+      "de": "Litauen",
+      "en": "Lithuania",
+      "gebiete": [
+        {
+          "id": "lithuania",
+          "geofabrik": "europe/lithuania",
+          "mb": 213
+        }
+      ]
+    },
+    {
+      "id": "luxembourg",
+      "iso": "LU",
+      "de": "Luxemburg",
+      "en": "Luxembourg",
+      "gebiete": [
+        {
+          "id": "luxembourg",
+          "geofabrik": "europe/luxembourg",
+          "mb": 46
+        }
+      ]
+    },
+    {
+      "id": "malta",
+      "iso": "MT",
+      "de": "Malta",
+      "en": "Malta",
+      "gebiete": [
+        {
+          "id": "malta",
+          "geofabrik": "europe/malta",
+          "mb": 9
+        }
+      ]
+    },
+    {
+      "id": "netherlands",
+      "iso": "NL",
+      "de": "Niederlande",
+      "en": "Netherlands",
+      "gebiete": [
+        {
+          "id": "netherlands",
+          "geofabrik": "europe/netherlands",
+          "mb": 1343
+        }
+      ]
+    },
+    {
+      "id": "norway",
+      "iso": "NO",
+      "de": "Norwegen",
+      "en": "Norway",
+      "gebiete": [
+        {
+          "id": "norway",
+          "geofabrik": "europe/norway",
+          "mb": 1314
+        }
+      ]
+    },
+    {
+      "id": "poland",
+      "iso": "PL",
+      "de": "Polen",
+      "en": "Poland",
+      "gebiete": [
+        {
+          "id": "poland",
+          "geofabrik": "europe/poland",
+          "mb": 2015
+        }
+      ]
+    },
+    {
+      "id": "portugal",
+      "iso": "PT",
+      "de": "Portugal",
+      "en": "Portugal",
+      "gebiete": [
+        {
+          "id": "portugal",
+          "geofabrik": "europe/portugal",
+          "mb": 407
+        }
+      ]
+    },
+    {
+      "id": "romania",
+      "iso": "RO",
+      "de": "Rumänien",
+      "en": "Romania",
+      "gebiete": [
+        {
+          "id": "romania",
+          "geofabrik": "europe/romania",
+          "mb": 317
+        }
+      ]
+    },
+    {
+      "id": "slovakia",
+      "iso": "SK",
+      "de": "Slowakei",
+      "en": "Slovakia",
+      "gebiete": [
+        {
+          "id": "slovakia",
+          "geofabrik": "europe/slovakia",
+          "mb": 331
+        }
+      ]
+    },
+    {
+      "id": "slovenia",
+      "iso": "SI",
+      "de": "Slowenien",
+      "en": "Slovenia",
+      "gebiete": [
+        {
+          "id": "slovenia",
+          "geofabrik": "europe/slovenia",
+          "mb": 299
+        }
+      ]
+    },
+    {
+      "id": "spain",
+      "iso": "ES",
+      "de": "Spanien",
+      "en": "Spain",
+      "gebiete": [
+        {
+          "id": "spain",
+          "geofabrik": "europe/spain",
+          "mb": 1427
+        }
+      ]
+    },
+    {
+      "id": "sweden",
+      "iso": "SE",
+      "de": "Schweden",
+      "en": "Sweden",
+      "gebiete": [
+        {
+          "id": "sweden",
+          "geofabrik": "europe/sweden",
+          "mb": 899
+        }
+      ]
+    },
+    {
+      "id": "united-kingdom",
+      "iso": "GB",
+      "de": "Vereinigtes Königreich",
+      "en": "United Kingdom",
+      "gebiete": [
+        {
+          "id": "united-kingdom",
+          "geofabrik": "europe/united-kingdom",
+          "mb": 2172
+        }
+      ]
+    }
+  ]
+}

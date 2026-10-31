@@ -1,0 +1,403 @@
+# Offline-Karten Europa: je Gebiet eine .pmtiles-Datei in zwei Varianten,
+# gebaut mit Planetiler aus den Geofabrik-Auszügen (OpenMapTiles-Schema),
+# hochgeladen nach Cloudflare R2 (öffentlich: https://karten.freqconvoi.com).
+#
+#   voll   = alles, was eine OpenMapTiles-Karte zeichnet (ohne POI, Hausnummern, Gipfel), Zoom 0–14
+#   leicht = Straßen, Orte, Wasser, Grenzen; ohne Gebäude/Landnutzung, Zoom 0–13 (~10 % von voll)
+#
+# WAS: gebiete.json (EU, EWR ohne Liechtenstein, Vereinigtes Königreich, Norwegen).
+# WIE: karten.json. Ein Land = ein Job; höchstens 2 Jobs gleichzeitig, und in
+#      einem Job ein Auszug nach dem anderen mit Pause (Geofabrik schonen).
+#      Scheitert ein Land, laufen die anderen weiter; der Job „stand“ trägt
+#      danach alles ein, was fertig wurde.
+# WANN: am 3. jedes Monats (die Blitzer-Daten bauen am 1. und 15.) und von Hand.
+#
+# SECRETS (Repo → Settings → Secrets and variables → Actions):
+#   R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET
+# Ohne sie: der Zeitplan bricht sofort mit klarer Meldung ab (nichts gebaut);
+# von Hand wird gebaut, und das Hochladen scheitert mit klarer Meldung;
+# „probelauf“ baut nur und meldet Größen und Minuten (grün, ohne Secrets).
+#
+#   gh workflow run karten.yml -f laender=luxembourg -f probelauf=true
+
+name: Karten bauen
+
+on:
+  schedule:
+    - cron: '23 3 3 * *'
+  workflow_dispatch:
+    inputs:
+      laender:
+        description: 'Länder, ISO-Codes oder Teilgebiete, kommagetrennt (z. B. luxembourg, AT, bayern). Leer = alle'
+        type: string
+        default: ''
+      varianten:
+        description: 'leicht, voll oder beide'
+        type: choice
+        options: [beide, leicht, voll]
+        default: beide
+      probelauf:
+        description: 'Nur bauen und Größen/Minuten melden, nichts hochladen (geht ohne Secrets)'
+        type: boolean
+        default: false
+      grundpaket:
+        description: 'Schriften und Symbole sofort neu hochladen'
+        type: boolean
+        default: false
+
+concurrency:
+  group: karten
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  # R2 spricht S3. Neuere AWS-CLIs schicken Prüfsummen-Köpfe, die R2 nicht
+  # überall annimmt — nur senden, wenn eine Anfrage es verlangt.
+  AWS_REQUEST_CHECKSUM_CALCULATION: when_required
+  AWS_RESPONSE_CHECKSUM_VALIDATION: when_required
+  AWS_DEFAULT_REGION: auto
+  KENNUNG: 'freq-karten (+https://github.com/Liveguyz/freq-karten)'
+
+jobs:
+  plan:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+      varianten: ${{ steps.plan.outputs.varianten }}
+      planetiler: ${{ steps.plan.outputs.planetiler }}
+      r2: ${{ steps.ziele.outputs.r2 }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+
+      - name: Tests
+        run: |
+          node --test 'test/*.test.mjs'
+          python3 -I -m unittest discover -s test -p 'test_*.py'
+
+      - name: Secrets da?
+        id: ziele
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+          PROBELAUF: ${{ inputs.probelauf }}
+          EREIGNIS: ${{ github.event_name }}
+        run: |
+          set -euo pipefail
+          fehlt=()
+          for name in R2_ACCOUNT_ID R2_ACCESS_KEY_ID R2_SECRET_ACCESS_KEY R2_BUCKET; do
+            [ -n "${!name}" ] || fehlt+=("$name")
+          done
+          # Die Werte selbst werden nie ausgegeben.
+          source skripte/r2-werte.sh
+          r2=false
+          if [ ${#fehlt[@]} -eq 0 ] && [ "$R2_WERTE_OK" = "ja" ]; then r2=true; fi
+          echo "r2=$r2" >> "$GITHUB_OUTPUT"
+          if [ "$r2" = "true" ] || [ "$PROBELAUF" = "true" ]; then exit 0; fi
+          meldung="Secrets fehlen oder sind unbrauchbar: ${fehlt[*]:-R2_ACCOUNT_ID (Form)} — setzen unter Settings → Secrets and variables → Actions (README „Secrets“)."
+          if [ "$EREIGNIS" = "schedule" ]; then
+            echo "::error::$meldung Der Monatslauf baut ohne sie nichts."
+            exit 1
+          fi
+          echo "::warning::$meldung Es wird gebaut, das Hochladen scheitert danach."
+
+      - name: Plan
+        id: plan
+        env:
+          EINGABE: ${{ inputs.laender }}
+          VARIANTEN: ${{ inputs.varianten }}
+        run: |
+          set -euo pipefail
+          matrix="$(node skripte/plan.mjs --matrix --laender "$EINGABE" --varianten "${VARIANTEN:-beide}")"
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+          echo "varianten=$(node skripte/plan.mjs --varianten "${VARIANTEN:-beide}")" >> "$GITHUB_OUTPUT"
+          echo "planetiler=$(node skripte/plan.mjs --wert planetiler)" >> "$GITHUB_OUTPUT"
+          if [ "$(printf '%s' "$matrix" | jq '.include | length')" -eq 0 ]; then echo "::error::Nichts zu bauen"; exit 1; fi
+          {
+            echo "### Plan"
+            echo ""
+            node skripte/plan.mjs --rechnung --laender "$EINGABE" --varianten "${VARIANTEN:-beide}" --parallel 2
+            echo ""
+            printf '%s' "$matrix" | jq -r '.include[] | "- \(.land) (\(.mb) MB, ~\(.minuten) min): \(.gebiete | split(",") | map(split(":")[0]) | join(", "))"'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # Wasserflächen, Natural Earth, Seemittellinien (~1,4 GB) und Planetiler
+  # selbst: EINMAL im Monat holen und in den Cache legen. Die Bau-Jobs lesen
+  # nur aus dem Cache — sonst holten 30 Jobs dieselben Dateien 30-mal.
+  beigaben:
+    needs: plan
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Monat
+        run: echo "MONAT=$(date -u +%Y-%m)" >> "$GITHUB_ENV"
+      - name: Cache
+        id: cache
+        uses: actions/cache@v6
+        with:
+          path: ${{ runner.temp }}/beigaben
+          key: karten-beigaben-${{ needs.plan.outputs.planetiler }}-${{ env.MONAT }}
+          lookup-only: true
+      - name: Holen
+        if: ${{ steps.cache.outputs.cache-hit != 'true' }}
+        env:
+          VERSION: ${{ needs.plan.outputs.planetiler }}
+          B: ${{ runner.temp }}/beigaben
+        run: |
+          set -euo pipefail
+          mkdir -p "$B"
+          curl -fsSL --retry 3 -A "$KENNUNG" -o "$B/planetiler-$VERSION.jar" \
+            "https://github.com/onthegomap/planetiler/releases/download/v${VERSION}/planetiler.jar"
+          sha256sum "$B/planetiler-$VERSION.jar"
+          # --only-download: nur die Quellen holen, dann Ende (der Auszug ist
+          # Monaco, der Standard von Planetiler, ein paar hundert KB).
+          "${JAVA_HOME_21_X64}/bin/java" -Xmx2g -jar "$B/planetiler-$VERSION.jar" \
+            --download --only-download --download-osm-tile-weights=false \
+            --download-dir="$B" --osm-path="$RUNNER_TEMP/monaco.osm.pbf" --tmpdir="$RUNNER_TEMP/tmp"
+          ls -la "$B"
+          du -sh "$B"
+
+  bauen:
+    needs: [plan, beigaben]
+    runs-on: ubuntu-24.04
+    # Größter Job (Frankreich oder Deutschland) ~1,5 h geschätzt; GitHub erlaubt 6 h.
+    timeout-minutes: 300
+    strategy:
+      fail-fast: false
+      # Geofabrik schonen: höchstens zwei Auszüge zugleich.
+      max-parallel: 2
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    name: bauen (${{ matrix.land }})
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+
+      - name: Platz schaffen
+        run: |
+          set -euo pipefail
+          # Planetiler braucht für einen 2-GB-Auszug rund 10 GB Zwischenspeicher.
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/.ghcup \
+            /usr/share/swift /usr/local/share/boost /opt/hostedtoolcache/CodeQL || true
+          sudo docker image prune --all --force >/dev/null 2>&1 || true
+          # Gebaut wird auf der Platte mit dem MEISTEN freien Platz.
+          frei_kb() { df --output=avail -k "$1" 2>/dev/null | tail -1 | tr -d ' ' || echo 0; }
+          M=""
+          if sudo mkdir -p /mnt/karten 2>/dev/null && sudo chown "$(id -u):$(id -g)" /mnt/karten; then M=/mnt/karten; fi
+          R="$RUNNER_TEMP/karten"; mkdir -p "$R"
+          if [ -n "$M" ] && [ "$(frei_kb "$M")" -gt "$(frei_kb "$R")" ]; then gross="$M"; klein="$R"; else gross="$R"; klein="${M:-$R}"; fi
+          echo "ARBEIT=$gross" >> "$GITHUB_ENV"
+          if [ "$(df --output=source "$klein" | tail -1)" != "$(df --output=source "$gross" | tail -1)" ] \
+             && [ "$(frei_kb "$klein")" -ge $((12 * 1024 * 1024)) ]; then
+            echo "DATEN=$klein" >> "$GITHUB_ENV"
+          else
+            echo "DATEN=$gross" >> "$GITHUB_ENV"
+          fi
+          echo "BEIGABEN=$RUNNER_TEMP/beigaben" >> "$GITHUB_ENV"
+          echo "MONAT=$(date -u +%Y-%m)" >> "$GITHUB_ENV"
+          df -h / "$R" ${M:+"$M"}
+          free -m; nproc
+
+      - name: Beigaben aus dem Cache
+        id: cache
+        uses: actions/cache/restore@v6
+        with:
+          path: ${{ env.BEIGABEN }}
+          key: karten-beigaben-${{ needs.plan.outputs.planetiler }}-${{ env.MONAT }}
+
+      - name: Planetiler
+        env:
+          VERSION: ${{ needs.plan.outputs.planetiler }}
+        run: |
+          set -euo pipefail
+          JAVA="${JAVA_HOME_21_X64:-}/bin/java"
+          [ -x "$JAVA" ] || { echo "::error::Java 21 fehlt auf dem Runner (JAVA_HOME_21_X64)"; exit 1; }
+          echo "JAVA=$JAVA" >> "$GITHUB_ENV"
+          mkdir -p "$BEIGABEN"
+          if [ ! -s "$BEIGABEN/planetiler-$VERSION.jar" ]; then
+            echo "::warning::Beigaben nicht im Cache — dieser Job holt sie selbst"
+            curl -fsSL --retry 3 -A "$KENNUNG" -o "$BEIGABEN/planetiler-$VERSION.jar" \
+              "https://github.com/onthegomap/planetiler/releases/download/v${VERSION}/planetiler.jar"
+          fi
+          sha256sum "$BEIGABEN/planetiler-$VERSION.jar"
+          echo "PLANETILER=$BEIGABEN/planetiler-$VERSION.jar" >> "$GITHUB_ENV"
+
+      - name: Bauen und hochladen
+        env:
+          GEBIETE: ${{ matrix.gebiete }}
+          VARIANTEN: ${{ needs.plan.outputs.varianten }}
+          R2: ${{ needs.plan.outputs.r2 }}
+          PROBELAUF: ${{ inputs.probelauf }}
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+        run: |
+          set -euo pipefail
+          hochladen=false
+          if [ "$PROBELAUF" != "true" ] && [ "$R2" = "true" ]; then
+            source skripte/r2-werte.sh
+            export AWS_ENDPOINT_URL="https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
+            hochladen=true
+          fi
+          mkdir -p "$ARBEIT/meldungen"
+          {
+            echo "### ${{ matrix.land }}"
+            echo ""
+            echo "| Gebiet | Variante | Größe | Minuten | R2 |"
+            echo "|---|---|---:|---:|---|"
+          } >> "$GITHUB_STEP_SUMMARY"
+          fehler=0; ohne_secrets=0; erstes=1
+          heap_mb=$(( $(awk '/MemTotal/ {print $2}' /proc/meminfo) * 45 / 100 / 1024 ))
+          for eintrag in ${GEBIETE//,/ }; do
+            gebiet="${eintrag%%:*}"
+            geofabrik="${eintrag#*:}"
+            # Geofabrik: ein Auszug nach dem anderen, mit Pause.
+            if [ "$erstes" = 1 ]; then erstes=0; else sleep 20; fi
+            pbf="$DATEN/$gebiet.osm.pbf"
+            if ! curl -fsSL --retry 5 --retry-delay 30 -A "$KENNUNG" -o "$pbf" \
+                 "https://download.geofabrik.de/$geofabrik-latest.osm.pbf"; then
+              echo "::error::$gebiet: Auszug nicht geholt"; fehler=1
+              echo "| $gebiet | — | — | — | Auszug fehlt |" >> "$GITHUB_STEP_SUMMARY"; continue
+            fi
+            # Prüfsumme von Geofabrik (fehlt sie, nur ein Hinweis).
+            if md5="$(curl -fsSL --retry 3 -A "$KENNUNG" "https://download.geofabrik.de/$geofabrik-latest.osm.pbf.md5" | cut -d' ' -f1)"; then
+              if [ "$md5" != "$(md5sum "$pbf" | cut -d' ' -f1)" ]; then
+                echo "::error::$gebiet: MD5 passt nicht (Download kaputt)"; fehler=1; rm -f "$pbf"
+                echo "| $gebiet | — | — | — | MD5 falsch |" >> "$GITHUB_STEP_SUMMARY"; continue
+              fi
+            else
+              echo "::warning::$gebiet: keine MD5 von Geofabrik"
+            fi
+            # Die Umrisslinie: Planetiler baut nur Kacheln, die sie berühren
+            # (sonst füllte das Meer im Rechteck von Norwegen leere Kacheln).
+            poly=""
+            if curl -fsSL --retry 3 -A "$KENNUNG" -o "$DATEN/$gebiet.poly" "https://download.geofabrik.de/$geofabrik.poly"; then
+              poly="$DATEN/$gebiet.poly"
+            fi
+            for variante in $VARIANTEN; do
+              maxzoom="$(node skripte/plan.mjs --wert maxzoom --variante "$variante")"
+              weglassen="$(node skripte/plan.mjs --wert weglassen --variante "$variante")"
+              zusatz="$(node skripte/plan.mjs --wert zusatz --variante "$variante")"
+              rm -rf "$DATEN/paket"; mkdir -p "$DATEN/paket"
+              start=$(date +%s)
+              planetiler() {
+                rm -rf "$ARBEIT/tmp"
+                # $zusatz ist von plan.mjs geprüft (nur „--name=wert“).
+                # shellcheck disable=SC2086
+                "$JAVA" -Xmx${heap_mb}m -jar "$PLANETILER" \
+                  --download \
+                  --download-osm-tile-weights=false \
+                  --download-dir="$BEIGABEN" \
+                  --osm-path="$pbf" \
+                  --tmpdir="$ARBEIT/tmp" \
+                  --output="$DATEN/paket/karte.pmtiles" \
+                  --maxzoom="$maxzoom" \
+                  --exclude-layers="$weglassen" \
+                  $zusatz \
+                  ${1:+--polygon=$1} \
+                  --nodemap-type=sparsearray --storage=mmap
+              }
+              gebaut=false
+              if planetiler "$poly"; then gebaut=true
+              elif [ -n "$poly" ] && planetiler ""; then
+                gebaut=true; echo "::warning::$gebiet ($variante): ohne Umrisslinie gebaut"
+              fi
+              min=$(( ($(date +%s) - start + 59) / 60 ))
+              if [ "$gebaut" != "true" ]; then
+                echo "::error::Bau $gebiet ($variante) fehlgeschlagen"; fehler=1
+                echo "| $gebiet | $variante | — | $min | Bau FEHLER |" >> "$GITHUB_STEP_SUMMARY"; continue
+              fi
+              if ! kopf="$(python3 -I skripte/pmtiles_kopf.py "$DATEN/paket/karte.pmtiles")"; then
+                echo "::error::$gebiet ($variante): Datei ungültig"; fehler=1
+                echo "| $gebiet | $variante | — | $min | Datei ungültig |" >> "$GITHUB_STEP_SUMMARY"; continue
+              fi
+              bytes="$(stat -c %s "$DATEN/paket/karte.pmtiles")"
+              groesse="$(awk -v b="$bytes" 'BEGIN { printf "%.1f MB", b / 1048576 }')"
+              r2_ok="—"
+              if [ "$hochladen" = "true" ]; then
+                stempel="$(date -u +%Y%m%dT%H%M%SZ)"
+                stand="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+                if [ "$variante" = "leicht" ]; then name="$gebiet-leicht-$stempel.pmtiles"; else name="$gebiet-$stempel.pmtiles"; fi
+                praefix="$(jq -r --arg v "$variante" '.ablage[$v]' karten.json)"
+                sha="$(sha256sum "$DATEN/paket/karte.pmtiles" | cut -d' ' -f1)"
+                # Jede Fassung hat einen eigenen Namen und ändert sich nie.
+                if aws s3 cp --only-show-errors "$DATEN/paket/karte.pmtiles" "s3://$R2_BUCKET/$praefix$gebiet/$name" \
+                     --content-type application/octet-stream \
+                     --cache-control 'public, max-age=31536000, immutable'; then
+                  node skripte/stand.mjs meldung --land "$gebiet" --variante "$variante" --datei "$name" \
+                    --bytes "$bytes" --sha256 "$sha" --stand "$stand" --kopf "$kopf" \
+                    --aus "$ARBEIT/meldungen/$variante-$gebiet.json"
+                  r2_ok="ja"
+                else
+                  echo "::error::R2 $gebiet ($variante) fehlgeschlagen"; fehler=1; r2_ok="FEHLER"
+                fi
+              elif [ "$PROBELAUF" = "true" ]; then
+                r2_ok="Probelauf"
+              else
+                ohne_secrets=1; r2_ok="Secrets fehlen"
+              fi
+              echo "| $gebiet | $variante | $groesse | $min | $r2_ok |" >> "$GITHUB_STEP_SUMMARY"
+              echo "[karten] $gebiet $variante: $groesse in $min min, Kopf $kopf"
+              rm -f "$DATEN/paket/karte.pmtiles"
+            done
+            rm -f "$pbf" "$DATEN/$gebiet.poly"
+            df -h "$ARBEIT" "$DATEN" | tail -n +2
+          done
+          if [ "$ohne_secrets" = 1 ]; then
+            echo "::error::Gebaut, aber NICHT hochgeladen: die Secrets R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET fehlen in diesem Repo (Settings → Secrets and variables → Actions). Nur bauen ohne Fehler: probelauf=true."
+            exit 1
+          fi
+          exit $fehler
+
+      - name: Meldungen für den Stand-Job
+        if: ${{ always() && needs.plan.outputs.r2 == 'true' && inputs.probelauf != true }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: karten-meldungen-${{ matrix.land }}
+          path: ${{ env.ARBEIT }}/meldungen/
+          retention-days: 1
+          if-no-files-found: ignore
+
+  # Einmal nach ALLEN Bau-Jobs, auch wenn einer scheiterte (was fertig ist,
+  # soll ankommen): stand.json, Grundpaket, alte Fassungen weg.
+  stand:
+    needs: [plan, bauen]
+    if: ${{ always() && needs.plan.result == 'success' && needs.plan.outputs.r2 == 'true' && inputs.probelauf != true }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+      - name: Meldungen holen
+        # Scheiterten alle Bau-Jobs, gibt es keine Meldung — dann bleibt stand.json, wie sie ist.
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          pattern: karten-meldungen-*
+          path: meldungen
+          merge-multiple: true
+      - name: stand.json, Grundpaket, Aufräumen
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+          GRUNDPAKET: ${{ inputs.grundpaket }}
+          EREIGNIS: ${{ github.event_name }}
+        run: |
+          set -euo pipefail
+          grund=faellig
+          # Der Monatslauf bringt jedes Mal frische Schriften/Symbole mit.
+          if [ "$GRUNDPAKET" = "true" ] || [ "$EREIGNIS" = "schedule" ]; then grund=ja; fi
+          bash skripte/stand-hochladen.sh meldungen "$grund"
