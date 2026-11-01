@@ -250,8 +250,23 @@ jobs:
           if [ "$PROBELAUF" != "true" ] && [ "$R2" = "true" ]; then
             source skripte/r2-werte.sh
             export AWS_ENDPOINT_URL="https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
+            # Große Länder (voll) liefen am 31.10. in „first byte timeout“:
+            # kleinere Teile, weniger gleichzeitig, und bis zu 3 Versuche.
+            aws configure set default.s3.multipart_threshold 64MB
+            aws configure set default.s3.multipart_chunksize 64MB
+            aws configure set default.s3.max_concurrent_requests 4
+            export AWS_MAX_ATTEMPTS=6 AWS_RETRY_MODE=adaptive
             hochladen=true
           fi
+          r2_cp() {
+            local versuch
+            for versuch in 1 2 3; do
+              aws s3 cp --only-show-errors --cli-read-timeout 300 --cli-connect-timeout 60 "$@" && return 0
+              echo "::warning::Upload-Versuch $versuch fehlgeschlagen, neuer Versuch in $((versuch * 20)) s"
+              sleep $((versuch * 20))
+            done
+            return 1
+          }
           mkdir -p "$ARBEIT/meldungen"
           {
             echo "### ${{ matrix.land }}"
@@ -334,7 +349,7 @@ jobs:
                 praefix="$(jq -r --arg v "$variante" '.ablage[$v]' karten.json)"
                 sha="$(sha256sum "$DATEN/paket/karte.pmtiles" | cut -d' ' -f1)"
                 # Jede Fassung hat einen eigenen Namen und ändert sich nie.
-                if aws s3 cp --only-show-errors "$DATEN/paket/karte.pmtiles" "s3://$R2_BUCKET/$praefix$gebiet/$name" \
+                if r2_cp "$DATEN/paket/karte.pmtiles" "s3://$R2_BUCKET/$praefix$gebiet/$name" \
                      --content-type application/octet-stream \
                      --cache-control 'public, max-age=31536000, immutable'; then
                   node skripte/stand.mjs meldung --land "$gebiet" --variante "$variante" --datei "$name" \
